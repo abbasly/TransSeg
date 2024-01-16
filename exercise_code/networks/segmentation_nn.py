@@ -16,6 +16,19 @@ class ConvLayer(nn.Module):
         x = self.norm(x)
         x = self.activation(x)
         return x
+    
+class UpConvLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=4, stride=2, padding=1):
+        super(UpConvLayer, self).__init__()
+        self.upconv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding)
+        self.activation = nn.ReLU()
+        self.norm = nn.BatchNorm2d(out_channels)
+
+    def forward(self, x):
+        x = self.upconv(x)
+        x = self.norm(x)
+        x = self.activation(x)
+        return x
 
 
 
@@ -31,11 +44,16 @@ class SegmentationNN(nn.Module):
         self.features = alexnet.features
 
         # Define additional layers for segmentation
-        self.conv1 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
-        self.relu1 = nn.ReLU(inplace=True)
-        self.conv2 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
-        self.relu2 = nn.ReLU(inplace=True)
-        self.conv3 = nn.Conv2d(64, num_classes, kernel_size=1)
+        # self.conv1 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
+
+        self.conv1 = ConvLayer(256, 128)
+        self.conv2 = ConvLayer(128, 23)
+        self.conv3 = ConvLayer(64, 64)
+        self.conv4 = ConvLayer(64, num_classes)
+
+        self.upconv1 = UpConvLayer(128, 23)
+
+        self.upconv2 = UpConvLayer(128, 23)
 
         # Upsample to get back to the original size
         self.upsample1 = nn.Upsample(size=(30, 30), mode='bilinear', align_corners=False)
@@ -51,18 +69,24 @@ class SegmentationNN(nn.Module):
         # Additional layers for segmentation
         
         x = self.conv1(x)
-        x = self.relu1(x)
+        # x = self.relu1(x)
 
-        x = self.conv2(x)
-        x = self.relu2(x)
+        # x = self.conv2(x)
+        # x = self.relu2(x)
 
-        x = self.conv3(x)
+        # x = self.conv3(x)
 
         # Upsample to get back to the original size
         x = self.upsample1(x)
+        # x = self.conv2(x)
         x = self.upsample2(x)
+        # x = self.conv3(x)
         x = self.upsample3(x)
+        # x = self.upconv1(x)
+        # x = self.conv4(x)
+        # x = self.upconv1(x)
         x = self.upsample4(x)
+        x = self.conv2(x)
         # print(x.shape)
         
 
